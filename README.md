@@ -140,10 +140,10 @@ Delete topics
 
 ```ssh
 # stdds
-kafka-topics.sh --delete --topic stdds --zookeeper localhost:9092
+kafka-topics.sh --delete --topic stdds --bootstrap-server localhost:9092
 
 # tfms
-kafka-topics.sh --delete --topic tfms --zookeeper localhost:9092
+kafka-topics.sh --delete --topic tfms --bootstrap-server localhost:9092
 ```
 
 Describe topics
