@@ -47,34 +47,95 @@ ssh kafkaAdmin@IP -i {{PATH/TO/SSHKEY}}
 Get Apache Kafka version 2.3.0
 
 ```ssh
-wget -q https://www-eu.apache.org/dist/kafka/2.3.0/kafka_2.12-2.3.0.tgz
-tar -xzf kafka_2.12-2.3.0.tgz
+sudo wget https://www-eu.apache.org/dist/kafka/2.3.0/kafka_2.12-2.3.0.tgz -O /opt/kafka_2.12-2.3.0.tgz
+cd /opt
+sudo tar -xvf kafka_2.12-2.3.0.tgz
+sudo ln -s /opt/kafka_2.12-2.3.0 /opt/kafka
+sudo chown -R kafkaAdmin:kafkaAdmin /opt/kafka*
+sudo rm *.tgz
+cd
+```
+
+We create the unit file for Zookeeper service in */etc/systemd/system/zookeeper.service* with the following content:
+
+```ssh
+sudo vi /etc/systemd/system/zookeeper.service
+[Unit]
+Description=zookeeper
+After=syslog.target network.target
+
+[Service]
+Type=simple
+
+User=kafkaAdmin
+Group=kafkaAdmin
+
+ExecStart=/opt/kafka/bin/zookeeper-server-start.sh /opt/kafka/config/zookeeper.properties
+ExecStop=/opt/kafka/bin/zookeeper-server-stop.sh
+
+[Install]
+WantedBy=multi-user.target
+```
+
+The same applies to the next unit file for Kafka, */etc/systemd/system/kafka.service*, that contains the following lines of configuration:
+
+```ssh
+sudo vi /etc/systemd/system/kafka.service
+[Unit]
+Description=Apache Kafka
+Requires=zookeeper.service
+After=zookeeper.service
+
+[Service]
+Type=simple
+
+User=kafkaAdmin
+Group=kafkaAdmin
+
+ExecStart=/opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/server.properties
+ExecStop=/opt/kafka/bin/kafka-server-stop.sh
+
+[Install]
+WantedBy=multi-user.target
+```
+
+We need to reload *systemd* to get it read the new unit files:
+
+```ssh
+sudo systemctl daemon-reload
+```
+
+Now we can start our new services (in this order):
+
+```ssh
+sudo systemctl start zookeeper
+sudo systemctl start kafka
+```
+
+If all goes well, *systemd* should report running state on both service's status
+
+```ssh
+sudo systemctl status zookeeper.service
+sudo systemctl status kafka.service
+```
+
+If needed, we can enable automatic start on boot for both services
+
+```ssh
+sudo systemctl enable zookeeper.service
+sudo systemctl enable kafka.service
 ```
 
 Add kafka tools to path
 
 ```ssh
-export KAFKA_HOME=~/kafka_2.12-2.3.0
+export KAFKA_HOME=/opt/kafka
 export PATH=$KAFKA_HOME/bin:$PATH
-```
-
-Start Single Zookeeper node
-
-```ssh
-cd kafka_2.12-2.3.0/
-zookeeper-server-start.sh config/zookeeper.properties
-```
-
-Start Single Kafka server
-
-```ssh
-cd kafka_2.12-2.3.0/
-kafka-server-start.sh config/server.properties
 ```
 
 ## Build and Copy Solace connector using Gradle and its Dependencies
 
-clone Solace connector source code from GitHub
+Clone Solace connector source code from GitHub
 
 ```ssh
 cd
@@ -95,7 +156,7 @@ cd pubsubplus-connector-kafka-source
 copy Solace Connector to ~/kafka_2.12-2.3.0/libs/
 
 ```ssh
-cp -v build/libs/*.jar ~/kafka_2.12-2.3.0/libs/
+cp -v build/libs/*.jar /opt/kafka/libs/
 ```
 
 get the Java Solace depedencies
@@ -115,7 +176,7 @@ unpack and copy dependencies to ~/kafka_2.12-2.3.0/libs/
 
 ```ssh
 unzip sol-connector.zip
-cp -v sol-jcsmp-*/lib/*.jar ~/kafka_2.12-2.3.0/libs/
+cp -v sol-jcsmp-*/lib/*.jar /opt/kafka/libs/
 ```
 
 ## Manage Apache Kafka topics
@@ -158,7 +219,7 @@ kafka-topics.sh --describe --topic tfms --bootstrap-server localhost:9092
 
 ## Configure Solace Connector to connect to SWIM Data Source
 
-Update ~/kafka_2.12-2.3.0/config/connect-standalone.properties
+Update /opt/kafka/config/connect-standalone.properties
 set:
 
 ```vi
@@ -169,7 +230,7 @@ value.converter=org.apache.kafka.connect.storage.StringConverter
 ```
 
 ```ssh
-vi ~/kafka_2.12-2.3.0/config/connect-standalone.properties
+vi /opt/kafka/config/connect-standalone.properties
 ```
 
 This is the final content of the file
@@ -289,14 +350,21 @@ key.converter=org.apache.kafka.connect.storage.StringConverter
 #value.converter=org.apache.kafka.connect.storage.StringConverter
 ```
 
+restart kafka service
+
+```ssh
+sudo systemctl restart kafka.service
+```
+
 Start  standalone connection
 
 ```ssh
 # stdds
-connect-standalone.sh ~/kafka_2.12-2.3.0/config/connect-standalone.properties ~/kafka_2.12-2.3.0/config/connect-solace-stdds-source.properties
+connect-standalone.sh /opt/kafka/config/connect-standalone.properties /opt/kafka/config/connect-solace-stdds-source.properties
 
 # tfms
-connect-standalone.sh ~/kafka_2.12-2.3.0/config/connect-standalone.properties ~/kafka_2.12-2.3.0/config/connect-solace-tfms-source.properties
+connect-standalone.sh /opt/kafka/config/connect-standalone.properties /opt/kafka/config/
+connect-solace-tfms-source.properties
 ```
 
 Check incoming messages. This command will display all the messages from the beginning and might take some time if you have lots of messages.
