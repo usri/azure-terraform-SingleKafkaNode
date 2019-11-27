@@ -283,10 +283,10 @@ Create stdds and/or tfms config connectors
 
 ```ssh
 # stdds
-sudo vi ~/kafka_2.12-2.3.0/config/connect-solace-stdds-source.properties
+sudo vi /opt/kafka/config/connect-solace-stdds-source.properties
 
 # tfms
-sudo vi ~/kafka_2.12-2.3.0/config/connect-solace-tfms-source.properties
+sudo vi /opt/kafka/config/connect-solace-tfms-source.properties
 ```
 
 > These values are mandatory and you need provide them:
