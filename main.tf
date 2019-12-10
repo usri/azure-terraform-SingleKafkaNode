@@ -1,16 +1,19 @@
 terraform {
-  backend "remote" {
-    organization = "zambrana"
+  # It is recommended to use remote state instead of local
+  # You can update these values in order to configure your remote state.
+  /*  backend "remote" {
+    organization = "{{ORGANIZATION_NAME}}"
 
     workspaces {
-      name = "work-BTS-SWIM-DataIngestion-SingleNode"
+      name = "{{WORKSPACE_NAME}}"
     }
   }
-  required_version = ">= 0.12.12"
+*/
+  required_version = ">= 0.12.16"
 }
 
 provider "azurerm" {
-  version = "=1.36.1"
+  version = "=1.37.0"
 }
 resource "azurerm_resource_group" "genericRG" {
   name     = "${var.suffix}${var.rgName}"
