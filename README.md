@@ -72,7 +72,7 @@ The terraform sctipt installs the following extra packages on the VM:
 * tmux
 * git
 
-Optional: It is recommended to install jq to parce JSON requests in the future
+Optional: It is recommended to install `jq` to parce JSON requests in the future
 
 ```ssh
 wget -O jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
@@ -263,7 +263,7 @@ kafka-topics.sh --describe --topic tfms --bootstrap-server localhost:9092
 
 ## Configure Solace Connector to connect to SWIM Data Source
 
-Update /opt/kafka/config/connect-standalone.properties
+Update `/opt/kafka/config/connect-standalone.properties`
 set:
 
 ```vi
@@ -400,7 +400,7 @@ restart kafka service
 sudo systemctl restart kafka.service
 ```
 
-Start  standalone connection
+Start standalone connection
 
 ```ssh
 # stdds
@@ -421,7 +421,7 @@ kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic stdds --from
 kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic tfms --from-beginning
 ```
 
-If you just want to check specific messages and not display all of them, you can use the --max-messages option.
+If you just want to check specific messages and not display all of them, you can use the `--max-messages` option.
 The following comand will display the first message.
 
 ```ssh
@@ -432,7 +432,7 @@ kafka-console-consumer.sh --from-beginning --max-messages 1 --topic stdds --boot
 kafka-console-consumer.sh --from-beginning --max-messages 1 --topic tfms --bootstrap-server localhost:9092
 ```
 
-if you want to see all available options just run the kafka-console-consumer.sh without any options
+if you want to see all available options, just run the `kafka-console-consumer.sh` without any options
 
 ```ssh
 kafka-console-consumer.sh
