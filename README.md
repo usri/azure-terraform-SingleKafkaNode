@@ -170,6 +170,13 @@ sudo systemctl enable zookeeper.service
 sudo systemctl enable kafka.service
 ```
 
+Open Kafka port in firewall. 9092 is the default port.
+
+```ssh
+sudo firewall-cmd --zone=public --add-port=9092/tcp --permanent
+sudo firewall-cmd --reload
+```
+
 Add kafka tools to path
 
 ```ssh
@@ -407,8 +414,7 @@ Start standalone connection
 connect-standalone.sh /opt/kafka/config/connect-standalone.properties /opt/kafka/config/connect-solace-stdds-source.properties
 
 # tfms
-connect-standalone.sh /opt/kafka/config/connect-standalone.properties /opt/kafka/config/
-connect-solace-tfms-source.properties
+connect-standalone.sh /opt/kafka/config/connect-standalone.properties /opt/kafka/config/connect-solace-tfms-source.properties
 ```
 
 Check incoming messages. This command will display all the messages from the beginning and might take some time if you have lots of messages.
