@@ -79,7 +79,7 @@ variable "sgName" {
 
 variable "sourceIPs" {
   type        = list
-  default     = ["173.66.39.236", "152.120.199.10", "167.220.148.25"]
+  default     = [""]
   description = "Public IPs to allow inboud communications."
 }
 
@@ -87,4 +87,24 @@ variable "workspaceName" {
   type        = string
   default     = "DatabricksWokspaceSingleNode"
   description = "DataBricks Workspace name."
+}
+
+## Storage
+variable "storageAccountName" {
+  type        = string
+  default     = "btsclusterdataingested"
+  description = "BTS Cluster Storage Account."
+}
+
+## VM
+variable "vmUserName" {
+  type        = string
+  default     = "kafkaAdmin"
+  description = "Username to be added to the VM."
+}
+
+variable "sshKeyPath" {
+  type        = string
+  default     = "~/.ssh/vm_ssh.pub"
+  description = "SSH Key to use when creating the VM."
 }

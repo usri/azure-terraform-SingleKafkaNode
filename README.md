@@ -5,6 +5,7 @@ It creates the following resources:
 * A new Resource Group
 * A RedHat VM
 * A VNet
+* A Storage Account with a container so it can be mounted in DataBricks.
 * 4 subnets to host the Single Kafka Cluster, but in mind to create a cluster in the future.
 * 2 subnets public and private dedicated to DataBricks Cluster.
 * A Network Security Group with SSH, HTTP and RDP access.
@@ -22,8 +23,8 @@ This project has the following files which make them easy to reuse, add or remov
 ├── main.tf
 ├── networking.tf
 ├── outputs.tf
-├── run.plan
 ├── security.tf
+├── storage.tf
 ├── variables.tf
 ├── vm.tf
 ├── workspace.json
@@ -39,11 +40,13 @@ More information on this topic [here](https://docs.microsoft.com/en-us/azure/vir
 
 ### versions
 
-* Terraform =>0.12.16
-* Azure provider 1.37.0
-* Azure CLI 2.0.77
+This terraform script has been tested using the following versions:
 
-## Authentication
+* Terraform =>0.12.19
+* Azure provider 1.40.0
+* Azure CLI 2.0.80
+
+## VM Authentication
 
 It uses key based authentication and it assumes you already have a key and you can configure the path using the _sshKeyPath_ variable in _`variables.tf`_ You can create one using this command:
 
@@ -68,9 +71,9 @@ You can create a free Terraform Cloud account [here](https://app.terraform.io).
 
 The terraform sctipt installs the following extra packages on the VM:
 
-* java-1.8.0-openjdk-devel
-* tmux
-* git
+* java-1.8.0-openjdk-devel (**Required**)
+* tmux (Optional)
+* git (**Required**)
 
 Optional: It is recommended to install `jq` to parce JSON requests in the future
 
@@ -80,6 +83,9 @@ chmod +x ./jq
 sudo cp jq /usr/bin
 ```
 
+> [!IMPORTANT]
+> Kafka does need Java in order to run and Git is needed in order to clone and build the Solace connector. This terraform script takes care of these requirements, but if you are going to configure Kafka on an existing VM, please make sure Java and Git are installed.
+
 ## Kafka Installation and Configuration
 
 ssh into the new VM once it is ready
@@ -87,6 +93,8 @@ ssh into the new VM once it is ready
 ```ssh
 ssh kafkaAdmin@IP -i {{PATH/TO/SSHKEY}}
 ```
+
+_`kafkaAdmin`_ is the user name that can be customized using the variable _`vmUserName`_ in _`variables.tf`_ file. Also remember to whitelist your source IP or IPs in the variable _`sourceIPs`_. Otherwise you might not be able to ssh into the VM.
 
 Get Apache Kafka version 2.3.0
 
@@ -100,7 +108,7 @@ sudo rm *.tgz
 cd
 ```
 
-We create the unit file for Zookeeper service in */etc/systemd/system/zookeeper.service* with the following content:
+We create the init file for Zookeeper service in */etc/systemd/system/zookeeper.service* with the following content:
 
 ```ssh
 sudo vi /etc/systemd/system/zookeeper.service
@@ -121,7 +129,7 @@ ExecStop=/opt/kafka/bin/zookeeper-server-stop.sh
 WantedBy=multi-user.target
 ```
 
-The same applies to the next unit file for Kafka, */etc/systemd/system/kafka.service*, that contains the following lines of configuration:
+The same applies to the next init file for Kafka, */etc/systemd/system/kafka.service*, that contains the following lines of configuration:
 
 ```ssh
 sudo vi /etc/systemd/system/kafka.service
@@ -143,7 +151,7 @@ ExecStop=/opt/kafka/bin/kafka-server-stop.sh
 WantedBy=multi-user.target
 ```
 
-We need to reload *systemd* to get it read the new unit files:
+We need to reload *systemd* to get it read the new init files:
 
 ```ssh
 sudo systemctl daemon-reload

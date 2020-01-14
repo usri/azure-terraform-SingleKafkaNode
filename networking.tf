@@ -58,29 +58,3 @@ resource "azurerm_subnet_network_security_group_association" "dataBricksNSGAssoc
   subnet_id                 = azurerm_subnet.dbSubnets[each.key].id
   network_security_group_id = azurerm_network_security_group.dataBricksNSG.id
 }
-
-
-## No Routing needed so far
-/*
-resource "azurerm_route_table" "routeTable" {
-  name                = "${var.routeTableName}RT"
-  location            = "${azurerm_resource_group.genericRG.location}"
-  resource_group_name = "${azurerm_resource_group.genericRG.name}"
-
-  route {
-    name                   = "default"
-    address_prefix         = "10.100.0.0/14"
-    next_hop_type          = "VirtualAppliance"
-    next_hop_in_ip_address = "10.10.1.1"
-  }
-
-  tags = "${var.tags}"
-}
-
-resource "azurerm_subnet_route_table_association" "test" {
-  for_each       = var.subnets
-  subnet_id      = "${azurerm_subnet.subnets[each.key].id}"
-  route_table_id = "${azurerm_route_table.routeTable.id}"
-
-}
-*/

@@ -11,3 +11,6 @@
 # plans
 *plan*
 *.plan*
+
+# Terraform logs
+crash.log

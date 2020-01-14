@@ -50,7 +50,7 @@ resource "azurerm_virtual_machine" "kafkaServer" {
   }
   os_profile {
     computer_name  = "kafkaServer"
-    admin_username = "kafkaAdmin"
+    admin_username = var.vmUserName
     custom_data    = <<-EOF
     #cloud-config
     package_upgrade: true
@@ -71,7 +71,7 @@ resource "azurerm_virtual_machine" "kafkaServer" {
   os_profile_linux_config {
     disable_password_authentication = true
     ssh_keys {
-      path     = "/home/kafkaAdmin/.ssh/authorized_keys"
+      path     = "/home/${var.vmUserName}/.ssh/authorized_keys"
       key_data = file("~/.ssh/vm_ssh.pub")
     }
   }
