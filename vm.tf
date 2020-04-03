@@ -72,7 +72,7 @@ resource "azurerm_virtual_machine" "kafkaServer" {
     disable_password_authentication = true
     ssh_keys {
       path     = "/home/${var.vmUserName}/.ssh/authorized_keys"
-      key_data = file("~/.ssh/vm_ssh.pub")
+      key_data = file(var.sshKeyPath)
     }
   }
   tags = var.tags
