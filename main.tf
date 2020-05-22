@@ -9,11 +9,12 @@ terraform {
     }
   }
 */
-  required_version = ">= 0.12.16"
+  required_version = ">= 0.12.24"
 }
 
 provider "azurerm" {
-  version = "=1.37.0"
+  version = "=2.10.0"
+  features {}
 }
 resource "azurerm_resource_group" "genericRG" {
   name     = "${var.suffix}${var.rgName}"

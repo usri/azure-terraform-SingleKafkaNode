@@ -13,24 +13,24 @@ resource "azurerm_subnet" "subnets" {
   name                 = each.key
   resource_group_name  = azurerm_resource_group.genericRG.name
   virtual_network_name = azurerm_virtual_network.genericVNet.name
-  address_prefix       = cidrsubnet(local.base_cidr_block, 8, each.value)
+  address_prefixes     = [cidrsubnet(local.base_cidr_block, 8, each.value)]
 
   service_endpoints = ["Microsoft.Storage"]
 
   # work around for https://github.com/terraform-providers/terraform-provider-azurerm/issues/2358
-  lifecycle {
-    ignore_changes = [network_security_group_id, route_table_id]
-  }
+  # lifecycle {
+  #   ignore_changes = [network_security_group_id, route_table_id]
+  # }
 }
 
 resource "azurerm_subnet" "dbSubnets" {
   for_each = var.dataBricksSubnets
 
-  name                      = each.key
-  resource_group_name       = azurerm_resource_group.genericRG.name
-  virtual_network_name      = azurerm_virtual_network.genericVNet.name
-  network_security_group_id = azurerm_network_security_group.dataBricksNSG.id
-  address_prefix            = cidrsubnet(local.base_cidr_block, 8, each.value)
+  name                 = each.key
+  resource_group_name  = azurerm_resource_group.genericRG.name
+  virtual_network_name = azurerm_virtual_network.genericVNet.name
+  #network_security_group_id = azurerm_network_security_group.dataBricksNSG.id
+  address_prefixes = [cidrsubnet(local.base_cidr_block, 8, each.value)]
 
   service_endpoints = ["Microsoft.Storage"]
 
@@ -48,9 +48,9 @@ resource "azurerm_subnet" "dbSubnets" {
   }
 
   # work around for https://github.com/terraform-providers/terraform-provider-azurerm/issues/2358
-  lifecycle {
-    ignore_changes = [network_security_group_id, route_table_id]
-  }
+  # lifecycle {
+  #   ignore_changes = [network_security_group_id, route_table_id]
+  # }
 }
 
 resource "azurerm_subnet_network_security_group_association" "dataBricksNSGAssociation" {

@@ -1,13 +1,13 @@
 output "generic_RG" {
-  value = "${azurerm_resource_group.genericRG.name}"
+  value = azurerm_resource_group.genericRG.name
 }
 
 output "kafkaPublicIP" {
-  value = "${azurerm_public_ip.kafkaPublicIP.ip_address}"
+  value = azurerm_public_ip.kafkaPublicIP.ip_address
 }
 
 output "kafkaPrivateIP" {
-  value = "${azurerm_network_interface.kafkaNIC.private_ip_address}"
+  value = azurerm_network_interface.kafkaNIC.private_ip_address
 }
 
 output "sshAccess" {
@@ -17,8 +17,22 @@ output "sshAccess" {
   SSHCONFIG
 }
 
+output "storageAccountID" {
+  description = "The storage account Resource ID."
+  value       = azurerm_storage_account.genericSA.id
+}
+
+output "storageAccountKey" {
+  description = " Access Key to access the SA."
+  value       = azurerm_storage_account.genericSA.primary_access_key
+}
+
+output "adlsFyleSytemID" {
+  value = azurerm_storage_data_lake_gen2_filesystem.ADLSFileSystemTFMS.id
+}
+
 output "vNetID" {
-  value = "${azurerm_virtual_network.genericVNet.id}"
+  value = azurerm_virtual_network.genericVNet.id
 }
 
 output "subnets" {

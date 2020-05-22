@@ -8,14 +8,14 @@ resource "azurerm_public_ip" "kafkaPublicIP" {
 }
 
 resource "azurerm_network_interface" "kafkaNIC" {
-  name                      = "${var.suffix}-KafkaNIC"
-  location                  = azurerm_resource_group.genericRG.location
-  resource_group_name       = azurerm_resource_group.genericRG.name
-  network_security_group_id = azurerm_network_security_group.genericNSG.id
+  name                = "${var.suffix}-KafkaNIC"
+  location            = azurerm_resource_group.genericRG.location
+  resource_group_name = azurerm_resource_group.genericRG.name
 
   ip_configuration {
-    name                          = "kafkaServer"
-    subnet_id                     = azurerm_subnet.subnets["headnodes"].id
+    name      = "kafkaServer"
+    subnet_id = azurerm_subnet.subnets["headnodes"].id
+    #subnet_id                     = data.azurerm_subnet.kafkasubnet.id
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = azurerm_public_ip.kafkaPublicIP.id
   }

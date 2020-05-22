@@ -40,15 +40,14 @@ variable "vnetName" {
 }
 
 locals {
-  base_cidr_block = "10.60.0.0/16"
+  base_cidr_block = "10.70.0.0/16"
 }
 
 variable "baseCIDRBlock" {
   type        = list
-  default     = ["10.60.0.0/16"]
+  default     = ["10.70.0.0/16"]
   description = "Main VNet CIDR value range."
 }
-
 
 variable "subnets" {
   type = map
@@ -85,14 +84,14 @@ variable "sourceIPs" {
 
 variable "workspaceName" {
   type        = string
-  default     = "DatabricksWokspaceSingleNode"
+  default     = "DBWokspaceSingleNode"
   description = "DataBricks Workspace name."
 }
 
 ## Storage
 variable "storageAccountName" {
   type        = string
-  default     = "btsclusterdataingested"
+  default     = "btsclstrdataingested"
   description = "BTS Cluster Storage Account."
 }
 

@@ -1,16 +1,15 @@
-resource "azurerm_template_deployment" "databricksWokspace" {
+resource "azurerm_databricks_workspace" "databricksWokspace" {
   name                = "${var.suffix}${var.workspaceName}"
   resource_group_name = azurerm_resource_group.genericRG.name
+  location            = azurerm_resource_group.genericRG.location
+  sku                 = "trial"
 
-  template_body = file("workspace.json")
-
-  # these key-value pairs are passed into the ARM Template's `parameters` block
-  parameters = {
-    "workspaceName"     = "${var.workspaceName}",
-    "vnetName"          = "${azurerm_virtual_network.genericVNet.name}",
-    "privateSubnetName" = "${azurerm_subnet.dbSubnets["privateDB"].name}",
-    "publicSubnetName"  = "${azurerm_subnet.dbSubnets["publicDB"].name}"
+  custom_parameters {
+    virtual_network_id  = azurerm_virtual_network.genericVNet.id
+    private_subnet_name = azurerm_subnet.dbSubnets["privateDB"].name
+    public_subnet_name  = azurerm_subnet.dbSubnets["publicDB"].name
+    no_public_ip        = false
   }
 
-  deployment_mode = "Incremental"
+  tags = var.tags
 }
