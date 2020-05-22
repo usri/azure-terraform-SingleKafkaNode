@@ -6,11 +6,11 @@ It creates the following resources:
 * A RedHat VM
 * A VNet
 * A Storage Account with a container so it can be mounted in DataBricks.
-* 4 subnets to host the Single Kafka Cluster, but in mind to create a cluster in the future.
+* 4 subnets to host the Single Kafka VM, but in mind to create a cluster in the future.
 * 2 subnets public and private dedicated to DataBricks Cluster.
 * A Network Security Group with SSH, HTTP and RDP access.
-* A Network Security GRoup dedicated to the DataBricks Cluster.
-* A DataBricks Workspace with VNet injection using an ARM template since Azure provider does not support that yet, but it shows how easy is t integrate terraform with ARM Templates. More information about VNet injection canbe found [here](https://docs.microsoft.com/en-us/azure/databricks/administration-guide/cloud-configurations/azure/vnet-inject)
+* A Network Security Group dedicated to the DataBricks Cluster.
+* A DataBricks Workspace with VNet injection.
 
 ## Project Structure
 
@@ -27,11 +27,10 @@ This project has the following files which make them easy to reuse, add or remov
 ├── storage.tf
 ├── variables.tf
 ├── vm.tf
-├── workspace.json
 └── workspace.tf
 ```
 
-Most common paremeters are exposed as variables in _`variables.tf`_
+Most common parameters are exposed as variables in _`variables.tf`_
 
 ## Pre-requisites
 
@@ -42,13 +41,13 @@ More information on this topic [here](https://docs.microsoft.com/en-us/azure/vir
 
 This terraform script has been tested using the following versions:
 
-* Terraform =>0.12.19
-* Azure provider 1.40.0
-* Azure CLI 2.0.80
+* Terraform =>0.12.24
+* Azure provider 2.10.0
+* Azure CLI 2.6.0
 
 ## VM Authentication
 
-It uses key based authentication and it assumes you already have a key and you can configure the path using the _sshKeyPath_ variable in _`variables.tf`_ You can create one using this command:
+It uses key based authentication and it assumes you already have a key. You can configure the path using the _sshKeyPath_ variable in _`variables.tf`_ You can create one using this command:
 
 ```ssh
 ssh-keygen -t rsa -b 4096 -m PEM -C vm@mydomain.com -f ~/.ssh/vm_ssh
@@ -69,13 +68,13 @@ terraform apply
 I also recommend using a remote state instead of a local one. You can change this configuration in _`main.tf`_
 You can create a free Terraform Cloud account [here](https://app.terraform.io).
 
-The terraform sctipt installs the following extra packages on the VM:
+The terraform script installs the following extra packages on the VM:
 
 * java-1.8.0-openjdk-devel (**Required**)
 * tmux (Optional)
 * git (**Required**)
 
-Optional: It is recommended to install `jq` to parce JSON requests in the future
+Optional: It is recommended to install `jq` to parse JSON requests in the future
 
 ```ssh
 wget -O jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
@@ -84,7 +83,7 @@ sudo cp jq /usr/bin
 ```
 
 > [!IMPORTANT]
-> Kafka does need Java in order to run and Git is needed in order to clone and build the Solace connector. This terraform script takes care of these requirements, but if you are going to configure Kafka on an existing VM, please make sure Java and Git are installed.
+> Kafka and the Solace Connector do need Java 8 in order to run and Git is needed in order to clone and build the Solace connector. This terraform script takes care of these requirements, but if you are going to configure Kafka on an existing VM, please make sure Java and Git are installed.
 
 ## Kafka Installation and Configuration
 
@@ -192,51 +191,23 @@ export KAFKA_HOME=/opt/kafka
 export PATH=$KAFKA_HOME/bin:$PATH
 ```
 
-## Build and Copy Solace connector using Gradle and its Dependencies
+## Get Solace Connector and its Dependencies
 
-Clone Solace connector source code from GitHub
-
-```ssh
-cd
-git clone https://github.com/SolaceLabs/pubsubplus-connector-kafka-source.git
-```
-
-Check and Build Solace Connector
+You can get the current Solace Connector version which is 2.0.1 and its dependencies using the following command
 
 ```ssh
-# check gradle build
-cd pubsubplus-connector-kafka-source
-./gradlew clean check
-
-# create new Solace Connector gradle build
-./gradlew clean jar
+wget https://solaceproducts.github.io/pubsubplus-connector-kafka-source/downloads/pubsubplus-connector-kafka-source-2.0.1.zip
 ```
 
-copy Solace Connector to ~/kafka_2.12-2.3.0/libs/
+unpack and copy the connector and its dependencies to ~/kafka_2.12-2.3.0/libs/
 
 ```ssh
-cp -v build/libs/*.jar /opt/kafka/libs/
+unzip pubsubplus-connector-kafka-source-2.0.1.zip
+cp -v pubsubplus-connector-kafka-source-2.0.1/lib/*.jar /opt/kafka/libs/
 ```
 
-get the Java Solace depedencies
-
-```ssh
-cd ..
-wget -q https://products.solace.com/download/JAVA_API -O sol-connector.zip
-```
-
-or from maven central
-
-```ssh
-wget https://repo1.maven.org/maven2/com/solacesystems/sol-jcsmp/10.6.3/sol-jcsmp-10.6.3.jar
-```
-
-unpack and copy dependencies to ~/kafka_2.12-2.3.0/libs/
-
-```ssh
-unzip sol-connector.zip
-cp -v sol-jcsmp-*/lib/*.jar /opt/kafka/libs/
-```
+This new version packages everything together so you do not need to build and get the dependencies from maven or somewhere else.
+In case you want build it yourself you can find more information on their [README](https://github.com/SolaceProducts/pubsubplus-connector-kafka-source).
 
 ## Manage Apache Kafka topics
 
@@ -360,53 +331,129 @@ sol.vpn_name
 sol.queue
 ```
 
+The values that need to be replaced are between {{ }}.
+
 This is the final content of the file
 
 ```ssh
-name={{connectoName}}
-connector.class=com.solace.source.connector.SolaceSourceConnector
-tasks.max=2
-kafka.topic={{kafkaTopic}}
-sol.host={{SWIMEndpoint:Port}}
-sol.username={{SWIMUserNaMe}}
-sol.password={{Password}}
-sol.vpn_name={{SWIMVPN}}
-sol.topics=soltest
-sol.queue={{SWIMQueue}}
-sol.message_callback_on_reactor=false
-sol.message_processor_class=com.solace.source.connector.msgprocessors.SolaceSampleKeyedMessageProcessor
-#sol.message_processor_class=com.solace.source.connector.msgprocessors.SolSampleSimpleMessageProcessor
-sol.generate_send_timestamps=false
-sol.generate_rcv_timestamps=false
-sol.sub_ack_window_size=255
-sol.generate_sequence_numbers=true
-sol.calculate_message_expiration=true
-sol.subscriber_dto_override=false
-sol.channel_properties.connect_retries=-1
-sol.channel_properties.reconnect_retries=-1
-sol.kafka_message_key=DESTINATION
-sol.ssl_validate_certificate=false
-#sol.ssl_validate_certicate_date=false
-#sol.ssl_connection_downgrade_to=PLAIN_TEXT
-sol.ssl_trust_store=/opt/PKI/skeltonCA/heinz1.ts
-sol.ssl_trust_store_pasword=sasquatch
-sol.ssl_trust_store_format=JKS
-#sol.ssl_trusted_command_name_list
-sol.ssl_key_store=/opt/PKI/skeltonCA/heinz1.ks
-sol.ssl_key_store_password=sasquatch
-sol.ssl_key_store_format=JKS
-sol.ssl_key_store_normalized_format=JKS
-sol.ssl_private_key_alias=heinz1
-sol.ssl_private_key_password=sasquatch
-#sol.authentication_scheme=AUTHENTICATION_SCHEME_CLIENT_CERTIFICATE
-key.converter.schemas.enable=true
-value.converter.schemas.enable=true
-#key.converter=org.apache.kafka.connect.converters.ByteArrayConverter
+# PubSub+ Kafka Source Connector parameters
+# GitHub project https://github.com/SolaceProducts/pubsubplus-connector-kafka-source
+#######################################################################################
+
+# Kafka connect params
+# Refer to https://kafka.apache.org/documentation/#connect_configuring
+name={{ connectorName }}
+connector.class=com.solace.connector.kafka.connect.source.SolaceSourceConnector
+tasks.max=1
 value.converter=org.apache.kafka.connect.converters.ByteArrayConverter
-#key.converter=org.apache.kafka.connect.json.JsonConverter
-#value.converter=org.apache.kafka.connect.json.JsonConverter
 key.converter=org.apache.kafka.connect.storage.StringConverter
-#value.converter=org.apache.kafka.connect.storage.StringConverter
+
+# Destination Kafka topic the connector will write to
+kafka.topic={{ kafkaTopic }}
+
+# PubSub+ connection information
+sol.host={{ SWIMEndpoint }}:{{ SWIMEndpointPort }}
+sol.username={{ SWIMUserNaMe }}
+sol.password={{ Password }}
+sol.vpn_name={{ SWIMVPN }}
+
+# Comma separated list of PubSub+ topics to subscribe to
+# If tasks.max>1, use shared subscriptions otherwise each task's subscription will receive same message
+# Refer to https://docs.solace.com/PubSub-Basics/Direct-Messages.htm#Shared
+# example shared subscription to "topic": "#share/group1/topic"
+sol.topics=sourcetest
+
+# PubSub+ queue name to consume from, must exist on event broker
+sol.queue={{ SWIMQueue }}
+
+# PubSub+ Kafka Source connector message processor
+# Refer to https://github.com/SolaceProducts/pubsubplus-connector-kafka-source
+sol.message_processor_class=com.solace.connector.kafka.connect.source.msgprocessors.SolaceSampleKeyedMessageProcessor
+
+# When using SolaceSampleKeyedMessageProcessor, defines which part of a
+# PubSub+ message shall be converted to a Kafka record key
+# Allowable values include: NONE, DESTINATION, CORRELATION_ID, CORRELATION_ID_AS_BYTES
+#sol.kafka_message_key=NONE
+
+# Connector TLS session to PubSub+ message broker properties
+# Specify if required when using TLS / Client certificate authentication
+# May require setup of keystore and truststore on each host where the connector is deployed
+# Refer to https://docs.solace.com/Overviews/TLS-SSL-Message-Encryption-Overview.htm
+# and https://docs.solace.com/Overviews/Client-Authentication-Overview.htm#Client-Certificate
+#sol.authentication_scheme=
+#sol.ssl_connection_downgrade_to=
+#sol.ssl_excluded_protocols=
+#sol.ssl_cipher_suites=
+sol.ssl_validate_certificate=false
+#sol.ssl_validate_certicate_date=
+#sol.ssl_trust_store=
+#sol.ssl_trust_store_password=
+#sol.ssl_trust_store_format=
+#sol.ssl_trusted_common_name_list=
+#sol.ssl_key_store=
+#sol.ssl_key_store_password=
+#sol.ssl_key_store_format=
+#sol.ssl_key_store_normalized_format=
+#sol.ssl_private_key_alias=
+#sol.ssl_private_key_password=
+
+# Connector Kerberos authentication of PubSub+ message broker properties
+# Specify if required when using Kerberos authentication
+# Refer to https://docs.solace.com/Overviews/Client-Authentication-Overview.htm#Kerberos
+# Example:
+#sol.authentication_scheme=AUTHENTICATION_SCHEME_GSS_KRB
+#sol.kerberos.login.conf=/opt/kerberos/login.conf
+#sol.kerberos.krb5.conf=/opt/kerberos/krb5.conf
+#sol.krb_service_name=
+
+# Solace Java properties to tune for creating a channel connection
+# Leave at default unless required
+# Look up meaning at https://docs.solace.com/API-Developer-Online-Ref-Documentation/java/com/solacesystems/jcsmp/JCSMPChannelProperties.html
+#sol.channel_properties.connect_timout_in_millis=
+#sol.channel_properties.read_timeout_in_millis=
+#sol.channel_properties.connect_retries=
+#sol.channel_properties.reconnect_retries=
+#sol.channnel_properties.connect_retries_per_host=
+#sol.channel_properties.reconnect_retry_wait_in_millis=
+#sol.channel_properties.keep_alive_interval_in_millis=
+#sol.channel_properties.keep_alive_limit=
+#sol.channel_properties.send_buffer=
+#sol.channel_properties.receive_buffer=
+#sol.channel_properties.tcp_no_delay=
+#sol.channel_properties.compression_level=
+
+# Solace Java tuning properties
+# Leave at default unless required
+# Look up meaning at https://docs.solace.com/API-Developer-Online-Ref-Documentation/java/com/solacesystems/jcsmp/JCSMPProperties.html
+#sol.message_ack_mode=
+#sol.session_name=
+#sol.localhost=
+#sol.client_name=
+#sol.generate_sender_id=
+#sol.generate_rcv_timestamps=
+#sol.generate_send_timestamps=
+#sol.generate_sequence_numbers=
+#sol.calculate_message_expiration=
+#sol.reapply_subscriptions=
+#sol.pub_multi_thread=
+#sol.pub_use_immediate_direct_pub=
+#sol.message_callback_on_reactor=
+#sol.ignore_duplicate_subscription_error=
+#sol.ignore_subscription_not_found_error=
+#sol.no_local=
+#sol.ack_event_mode=
+#sol.sub_ack_window_size=
+#sol.pub_ack_window_size=
+#sol.sub_ack_time=
+#sol.pub_ack_time=
+#sol.sub_ack_window_threshold=
+#sol.max_resends=
+#sol.gd_reconnect_fail_action=
+#sol.susbcriber_local_priority=
+#sol.susbcriber_network_priority=
+#sol.subscriber_dto_override=
+
+
 ```
 
 restart kafka service
